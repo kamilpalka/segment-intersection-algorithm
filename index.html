@@ -24,10 +24,24 @@
 
       const ctx = myCanvas.getContext("2d");
 
+      let angle = 0;
+      const mouse = { x: 0, y: 0 };
+      document.onmousemove = (e) => {
+        mouse.x = event.x;
+        mouse.y = event.y;
+      };
+
       //let t = -1;
       animate();
 
       function animate() {
+        const radius = 50;
+        A.x = mouse.x + Math.cos(angle) * radius;
+        A.y = mouse.y - Math.sin(angle) * radius;
+        B.x = mouse.x - Math.cos(angle) * radius;
+        B.y = mouse.y + Math.sin(angle) * radius;
+        angle += 0.02;
+
         ctx.clearRect(0, 0, myCanvas.width, myCanvas.height);
         ctx.beginPath();
         ctx.moveTo(A.x, A.y);
@@ -55,7 +69,13 @@
         // drawDot(N, "N", t < 0 || t > 1);
 
         const I = getIntersection(A, B, C, D);
-        drawDot(I, "I");
+        if (I) {
+          drawDot(I, "I");
+        }
+        // bottom visualisation
+        // ctx.beginPath();
+        // ctx.rect(myCanvas.width / 2, 0, I.bottom / 100, 10);
+        // ctx.fill();
 
         //t += 0.005;
         requestAnimationFrame(animate);
@@ -65,11 +85,11 @@
         /* Math
 
         ------------------------------
-        1) Ix = Ax+(Bx-Ax)t = Cx(Dx-Cx)u
-        2) Iy = Ay+(By-Ay)t = Cy(Dy-Cy)u
+        1) Ix = Ax+(Bx-Ax)t = Cx+(Dx-Cx)u
+        2) Iy = Ay+(By-Ay)t = Cy+(Dy-Cy)u
         ------------------------------
 
-        1) Ax+(Bx-Ax)t = Cx(Dx-Cx)u / -Cx
+        1) Ax+(Bx-Ax)t = Cx+(Dx-Cx)u / -Cx
           (Ax-Cx)+(Bx-Ax)t = [(Dx-Cx)u <------- ] replace
 
         2) Ay+(By-Ay)t = Cy(Dy-Cy)u / -Cy
@@ -83,13 +103,23 @@
 
           t = (Dx-Cx)(Ay-Cy)-(Dy-Cy)(Ax-Cx) / (Dy-Cy)(Bx-Ax)-(Dx-Cx)(By-Ay)
         */
-        const top = (D.x - C.x) * (A.y - C.y) - (D.y - C.y) * (A.x - C.x);
+        const tTop = (D.x - C.x) * (A.y - C.y) - (D.y - C.y) * (A.x - C.x);
+        const uTop = (C.y - A.y) * (A.x - B.x) - (C.x - A.x) * (A.y - B.y);
         const bottom = (D.y - C.y) * (B.x - A.x) - (D.x - C.x) * (B.y - A.y);
-        const t = top / bottom;
-        return {
-          x: lerp(A.x, B.x, t),
-          y: lerp(A.y, B.y, t),
-        };
+
+        if (bottom != 0) {
+          const t = tTop / bottom;
+          const u = uTop / bottom;
+          if (t >= 0 && t <= 1 && u >= 0 && u <= 1) {
+            return {
+              x: lerp(A.x, B.x, t),
+              y: lerp(A.y, B.y, t),
+              offset: t,
+            };
+          }
+        }
+
+        return null;
       }
 
       function lerp(A, B, t) {
